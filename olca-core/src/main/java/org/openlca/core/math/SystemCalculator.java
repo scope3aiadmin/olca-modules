@@ -1,5 +1,8 @@
 package org.openlca.core.math;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -75,6 +78,8 @@ public class SystemCalculator {
 
 	private LcaResult solve(CalculationSetup setup, int type) {
 		log.info("calculate result for {}", setup.target());
+		long startTime = System.nanoTime();
+		
 		var techIndex = TechIndex.of(db, setup);
 		var subs = solveSubSystems(setup, techIndex);
 		log.trace("solved {} sub-systems", subs.size());
@@ -104,6 +109,20 @@ public class SystemCalculator {
 			}
 		}
 
+		long endTime = System.nanoTime();
+		double durationMs = (endTime - startTime) / 1_000_000.0;
+		log.info("calculation completed in {} ms", durationMs);
+		
+		try {
+			var configFile = new File(System.getProperty("user.home") + "/openLCA-data-1.4/olca-native/0.0.1/arm64/olca-native.json");
+			if (configFile.exists()) {
+				var content = Files.readString(configFile.toPath());
+				log.info("native config: {}", content);
+			}
+		} catch (IOException e) {
+			log.debug("no native libraries loaded", e);
+		}
+		
 		return result;
 	}
 

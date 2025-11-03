@@ -12,6 +12,7 @@ import org.openlca.core.matrix.index.TechIndex;
 import org.openlca.core.matrix.uncertainties.UMatrix;
 import org.openlca.core.model.descriptors.LocationDescriptor;
 import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 import gnu.trove.map.hash.TLongObjectHashMap;
 
@@ -30,6 +31,7 @@ public class InventoryBuilder {
 	private UMatrix techUncerts;
 	private UMatrix enviUncerts;
 	private double[] costs;
+	private final Logger log = LoggerFactory.getLogger(getClass());
 
 	public InventoryBuilder(MatrixConfig conf) {
 		this.conf = conf;
@@ -82,15 +84,19 @@ public class InventoryBuilder {
 
 		// product data
 		data.techIndex = techIndex;
+		log.info("Creating technosphere matrix");
 		techBuilder.minSize(n, n);
 		data.techMatrix = techBuilder.finish();
+		log.info("Finished creating technosphere matrix");
 		data.techUncertainties = techUncerts;
 
 		// optional elementary flows
 		if (m > 0) {
 			data.enviIndex = flowIndex;
+			log.info("Creating environmental matrix");
 			enviBuilder.minSize(m, n);
 			data.enviMatrix = enviBuilder.finish();
+			log.info("Finished creating environmental matrix");
 			data.enviUncertainties = enviUncerts;
 		}
 

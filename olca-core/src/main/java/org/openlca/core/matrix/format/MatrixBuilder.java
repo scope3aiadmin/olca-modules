@@ -1,5 +1,6 @@
 package org.openlca.core.matrix.format;
 
+import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,6 +110,8 @@ public class MatrixBuilder {
 	}
 
 	public Matrix finish() {
+		// Apply thresholding before finalizing
+		thresholdNearZeroValues(1e-9);
 		if (dense != null) {
 			mapDense();
 			log.trace("Finish matrix builder with "
@@ -156,5 +159,37 @@ public class MatrixBuilder {
 				(row, col, val) -> dense.set(row, col, val));
 		sparse.clear();
 		sparseEntries = 0;
+	}
+
+	private void thresholdNearZeroValues(double threshold) {
+		double absThreshold = Math.abs(threshold);
+		int[] sparseThresholded = {0};
+		int denseThresholded = 0;
+
+		var entriesToZero = new ArrayList<int[]>();
+		sparse.iterate((row, col, val) -> {
+			if (Math.abs(val) < absThreshold) {
+				entriesToZero.add(new int[]{row, col});
+				sparseThresholded[0]++;
+			}
+		});
+		
+		// Now zero them out after iteration is complete
+		for (var entry : entriesToZero) {
+			sparse.set(entry[0], entry[1], 0);
+		}
+
+		if (dense != null) {
+			for (int col = 0; col < dense.columns(); col++) {
+				for (int row = 0; row < dense.rows(); row++) {
+					double val = dense.get(row, col);
+					if (Math.abs(val) < absThreshold) {
+						dense.set(row, col, 0);
+						denseThresholded++;
+					}
+				}
+			}
+		}
+		log.info("Thresholded {} sparse and {} dense entries", sparseThresholded[0], denseThresholded);
 	}
 }
