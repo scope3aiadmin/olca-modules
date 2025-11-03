@@ -11,8 +11,11 @@ import org.openlca.core.matrix.solvers.Factorization;
 import org.openlca.core.matrix.solvers.MatrixSolver;
 
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MKLSolver implements MatrixSolver {
+	private static final Logger log = LoggerFactory.getLogger(MKLSolver.class);
 
 	@Override
 	public boolean hasSparseSupport() {
@@ -35,6 +38,7 @@ public class MKLSolver implements MatrixSolver {
 
 		var csc = asSparse(a).orElse(null);
 		if (csc != null) {
+			log.info("Using MKL SPARSE solver (PARDISO)");
 			var x = new double[n];
 			int info = MKL.solveSparse(
 				n,
@@ -48,6 +52,7 @@ public class MKLSolver implements MatrixSolver {
 			return x;
 		}
 
+		log.info("Using MKL DENSE solver (BLAS)");
 		var dense = MatrixConverter.dense(a);
 		var lu = dense == a ? dense.copy() : dense;
 		int info = MKL.solveDense(n, 1, lu.data, b);
@@ -57,9 +62,11 @@ public class MKLSolver implements MatrixSolver {
 
 	@Override
 	public double[] multiply(MatrixReader m, double[] x) {
-		// TODO: check/add native support
-		if (m instanceof HashPointMatrix || m instanceof CSCMatrix)
+		if (m instanceof HashPointMatrix || m instanceof CSCMatrix) {
+			log.info("Using SPARSE matrix-vector multiplication (MKL - Java sparse path)");
 			return m.multiply(x);
+		}
+		log.info("Using DENSE matrix-vector multiplication (MKL BLAS)");
 		var a = MatrixConverter.dense(m);
 		var y = new double[m.rows()];
 		MKL.denseMatrixVectorMul(m.rows(), m.columns(), a.data, x, y);
@@ -102,6 +109,7 @@ public class MKLSolver implements MatrixSolver {
 		var csc = asSparse(matrix).orElse(null);
 		var ptr = new long[1];
 		if (csc != null) {
+			log.info("Using MKL SPARSE factorization (PARDISO)");
 			int info = MKL.sparseFactorization(
 				csc.rows,
 				csc.values,
@@ -113,6 +121,7 @@ public class MKLSolver implements MatrixSolver {
 			return new SparseFactorization(ptr[0], csc.rows);
 		}
 
+		log.info("Using MKL DENSE factorization (BLAS)");
 		var dense = DenseMatrix.of(matrix);
 		int info = MKL.denseFactorization(dense.rows, dense.data, ptr);
 		InfoCode.checkBlas(info);

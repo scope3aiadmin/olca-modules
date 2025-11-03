@@ -96,6 +96,15 @@ public class SystemCalculator {
 			case EAGER -> ResultProviders.solveEager(context);
 			default -> ResultProviders.solve(context);
 		};
+		
+		// Log solver information
+		var actualSolver = context.solver();
+		if (actualSolver != null) {
+			log.info("Selected solver: {} (native: {}, sparse support: {})", 
+					actualSolver.getClass().getSimpleName(),
+					actualSolver.isNative(),
+					actualSolver.hasSparseSupport());
+		}
 		log.info("selected provider {}", provider);
 
 		var result = new LcaResult(provider);

@@ -4,6 +4,8 @@ import org.openlca.core.matrix.MatrixData;
 import org.openlca.core.matrix.format.Matrix;
 import org.openlca.core.matrix.format.MatrixReader;
 import org.openlca.core.matrix.solvers.MatrixSolver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public record InversionResult(
 	MatrixData data,
@@ -35,6 +37,7 @@ public record InversionResult(
 	}
 
 	public static class Calculator {
+		private static final Logger log = LoggerFactory.getLogger(Calculator.class);
 		private final MatrixSolver solver;
 		private final MatrixData data;
 		private MatrixReader inverse;
@@ -56,9 +59,35 @@ public record InversionResult(
 		}
 
 		public InversionResult calculate() {
-
+			// Log solver information
+			String solverType = solver.isNative() ? "NATIVE" : "JAVA";
+			boolean sparseSupport = solver.hasSparseSupport();
+			String solverClass = solver.getClass().getSimpleName();
+			log.info("Using {} solver (native: {}, sparse support: {})", 
+					solverClass, solverType, sparseSupport);
+			
+			// Log matrix types
+			String techType = data.techMatrix.isSparse() ? "SPARSE" : "DENSE";
+			log.info("Technosphere matrix A: {} ({}x{})", 
+					techType, data.techMatrix.rows(), data.techMatrix.columns());
+			
+			if (data.enviMatrix != null) {
+				String enviType = data.enviMatrix.isSparse() ? "SPARSE" : "DENSE";
+				log.info("Biosphere matrix B: {} ({}x{})", 
+						enviType, data.enviMatrix.rows(), data.enviMatrix.columns());
+			}
+			
+			if (data.impactMatrix != null) {
+				String impactType = data.impactMatrix.isSparse() ? "SPARSE" : "DENSE";
+				log.info("Impact matrix C: {} ({}x{})", 
+						impactType, data.impactMatrix.rows(), data.impactMatrix.columns());
+			}
+			
 			var techIdx = data.techIndex;
 			var refIdx = techIdx.of(data.demand.techFlow());
+
+			// Calculate inverse
+			log.info("Computing inverse A⁻¹...");
 			var inverse = this.inverse != null
 				? this.inverse
 				: solver.invert(data.techMatrix);

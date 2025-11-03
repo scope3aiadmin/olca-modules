@@ -19,6 +19,8 @@ import org.openlca.core.model.UncertaintyType;
 import org.openlca.core.model.descriptors.ImpactDescriptor;
 import org.openlca.core.model.descriptors.ImpactMethodDescriptor;
 import org.openlca.expressions.FormulaInterpreter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Builds the matrices with characterization factors for a given set of flows
@@ -35,6 +37,8 @@ public final class ImpactBuilder {
 	private final ConversionTable conversions;
 	private MatrixBuilder matrix;
 	private UMatrix uncertainties;
+
+	private final Logger log = LoggerFactory.getLogger(getClass());
 
 	private ImpactBuilder(Config config) {
 		this.db = config.db;
@@ -115,7 +119,9 @@ public final class ImpactBuilder {
 		var data = new ImpactData();
 		data.flowIndex = flowIndex;
 		data.impactIndex = impactIndex;
+		log.info("Creating characterization matrix");
 		data.impactMatrix = matrix.finish();
+		log.info("Finished creating characterization matrix");
 		data.impactUncertainties = uncertainties;
 		return data;
 	}

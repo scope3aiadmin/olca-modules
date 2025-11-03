@@ -12,8 +12,11 @@ import org.openlca.core.matrix.format.MatrixReader;
 import org.openlca.julia.Julia;
 import org.openlca.nativelib.Module;
 import org.openlca.nativelib.NativeLib;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NativeSolver implements MatrixSolver {
+	private static final Logger log = LoggerFactory.getLogger(NativeSolver.class);
 
 	public NativeSolver() {
 	}
@@ -63,10 +66,11 @@ public class NativeSolver implements MatrixSolver {
 
 	@Override
 	public double[] multiply(MatrixReader m, double[] x) {
-		if (m instanceof HashPointMatrix
-				|| m instanceof CSCMatrix) {
+		if (m instanceof HashPointMatrix || m instanceof CSCMatrix) {
+			log.info("Using SPARSE matrix-vector multiplication (native sparse path)");
 			return m.multiply(x);
 		}
+		log.info("Using DENSE matrix-vector multiplication (native dense path)");
 		var a = MatrixConverter.dense(m);
 		double[] y = new double[m.rows()];
 		Julia.mvmult(m.rows(), m.columns(), a.data, x, y);
@@ -89,6 +93,10 @@ public class NativeSolver implements MatrixSolver {
 
 	@Override
 	public DenseMatrix multiply(MatrixReader a, MatrixReader b) {
+		boolean aSparse = a.isSparse();
+		boolean bSparse = b.isSparse();
+		log.info("Matrix multiplication: A={}, B={} -> Converting to DENSE for native", 
+				aSparse ? "SPARSE" : "DENSE", bSparse ? "SPARSE" : "DENSE");
 		DenseMatrix _a = MatrixConverter.dense(a);
 		DenseMatrix _b = MatrixConverter.dense(b);
 		int rowsA = _a.rows();
@@ -108,11 +116,16 @@ public class NativeSolver implements MatrixSolver {
 		if (!matrix.isSquare())
 			throw new NonSquareMatrixException(matrix.rows(), matrix.columns());
 		if (hasSparseSupport()) {
-			if (matrix instanceof HashPointMatrix hpm)
+			if (matrix instanceof HashPointMatrix hpm) {
+				log.info("Using NATIVE SPARSE factorization (UMFPACK)");
 				return SparseFactorization.of(hpm.compress());
-			if (matrix instanceof CSCMatrix csc)
+			}
+			if (matrix instanceof CSCMatrix csc) {
+				log.info("Using NATIVE SPARSE factorization (UMFPACK)");
 				return SparseFactorization.of(csc);
+			}
 		}
+		log.info("Using NATIVE DENSE factorization");
 		return DenseFactorization.of(matrix);
 	}
 }
