@@ -27,6 +27,7 @@ public class CalculationSetup extends AbstractEntity
 	private FlowPropertyFactor flowPropertyFactor;
 	private Double amount;
 	private int numberOfRuns = -1;
+	private Double nearZeroThreshold;
 
 	/**
 	 * Creates a new calculation setup for the given type and calculation target
@@ -321,6 +322,24 @@ public class CalculationSetup extends AbstractEntity
 				: OptionalInt.empty();
 	}
 
+	/**
+	 * Optionally set the near-zero threshold for matrix values. Values below
+	 * this threshold will be set to zero during matrix finalization. If not
+	 * set, no thresholding is applied.
+	 */
+	public CalculationSetup withNearZeroThreshold(double threshold) {
+		this.nearZeroThreshold = threshold;
+		return this;
+	}
+
+	/**
+	 * Get the near-zero threshold for matrix values. Returns {@code null} if
+	 * not set.
+	 */
+	public Double nearZeroThreshold() {
+		return nearZeroThreshold;
+	}
+
 	@Override
 	public CalculationSetup copy() {
 		var target = system != null ? system : process;
@@ -336,6 +355,7 @@ public class CalculationSetup extends AbstractEntity
 		clone.flowPropertyFactor = flowPropertyFactor;
 		clone.amount = amount;
 		clone.numberOfRuns = numberOfRuns;
+		clone.nearZeroThreshold = nearZeroThreshold;
 
 		if (parameters != null) {
 			clone.parameters = new ArrayList<>(parameters.size());

@@ -179,6 +179,9 @@ public class SystemCalculator {
 					.withAllocation(setup.allocation())
 					.withImpactMethod(setup.impactMethod())
 					.withNwSet(setup.nwSet());
+			if (setup.nearZeroThreshold() != null) {
+				subSetup.withNearZeroThreshold(setup.nearZeroThreshold());
+			}
 			var subResult = calculate(subSetup);
 			subResults.put(p, subResult);
 		}

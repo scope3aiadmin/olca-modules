@@ -86,7 +86,9 @@ public class InventoryBuilder {
 		data.techIndex = techIndex;
 		log.info("Creating technosphere matrix");
 		techBuilder.minSize(n, n);
-		data.techMatrix = techBuilder.finish();
+		data.techMatrix = conf.nearZeroThreshold != null
+			? techBuilder.finish(conf.nearZeroThreshold)
+			: techBuilder.finish();
 		log.info("Finished creating technosphere matrix");
 		data.techUncertainties = techUncerts;
 
@@ -95,7 +97,9 @@ public class InventoryBuilder {
 			data.enviIndex = flowIndex;
 			log.info("Creating environmental matrix");
 			enviBuilder.minSize(m, n);
-			data.enviMatrix = enviBuilder.finish();
+			data.enviMatrix = conf.nearZeroThreshold != null
+				? enviBuilder.finish(conf.nearZeroThreshold)
+				: enviBuilder.finish();
 			log.info("Finished creating environmental matrix");
 			data.enviUncertainties = enviUncerts;
 		}

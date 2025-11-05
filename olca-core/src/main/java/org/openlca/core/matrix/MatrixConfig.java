@@ -28,6 +28,7 @@ public class MatrixConfig {
 	public final boolean withCosts;
 	public final boolean withRegionalization;
 	public final AllocationMethod allocationMethod;
+	public final Double nearZeroThreshold;
 
 	/**
 	 * Optional sub-system results of the product system.
@@ -69,6 +70,7 @@ public class MatrixConfig {
 		subResults = builder.subResults != null
 			? builder.subResults
 			: Collections.emptyMap();
+		nearZeroThreshold = builder.nearZeroThreshold;
 	}
 
 	public static Builder of(IDatabase db, TechIndex techIndex) {
@@ -97,6 +99,7 @@ public class MatrixConfig {
 		private boolean withUncertainties;
 		private boolean withCosts;
 		private boolean withRegionalization;
+		private Double nearZeroThreshold;
 
 		private Builder(IDatabase db, TechIndex techIndex) {
 			this.db = db;
@@ -112,6 +115,7 @@ public class MatrixConfig {
 			allocationMethod = setup.allocation();
 			redefs = setup.parameters();
 			withUncertainties = setup.simulationRuns().isPresent();
+			nearZeroThreshold = setup.nearZeroThreshold();
 			var impactMethod = setup.impactMethod();
 			return impactMethod != null
 				? withImpacts(ImpactIndex.of(impactMethod))

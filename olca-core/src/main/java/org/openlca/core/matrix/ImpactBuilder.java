@@ -37,6 +37,7 @@ public final class ImpactBuilder {
 	private final ConversionTable conversions;
 	private MatrixBuilder matrix;
 	private UMatrix uncertainties;
+	private final Double nearZeroThreshold;
 
 	private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -65,6 +66,7 @@ public final class ImpactBuilder {
 		}
 
 		withUncertainties = config.withUncertainties;
+		nearZeroThreshold = config.nearZeroThreshold;
 		conversions = ConversionTable.create(db);
 	}
 
@@ -120,7 +122,9 @@ public final class ImpactBuilder {
 		data.flowIndex = flowIndex;
 		data.impactIndex = impactIndex;
 		log.info("Creating characterization matrix");
-		data.impactMatrix = matrix.finish();
+		data.impactMatrix = nearZeroThreshold != null
+			? matrix.finish(nearZeroThreshold)
+			: matrix.finish();
 		log.info("Finished creating characterization matrix");
 		data.impactUncertainties = uncertainties;
 		return data;
@@ -319,6 +323,7 @@ public final class ImpactBuilder {
 		private boolean withUncertainties;
 		private FormulaInterpreter interpreter;
 		private ImpactIndex impacts;
+		private Double nearZeroThreshold;
 
 		private Config(IDatabase db, EnviIndex flows) {
 			this.db = db;
@@ -331,6 +336,7 @@ public final class ImpactBuilder {
 			this.withUncertainties = conf.withUncertainties;
 			this.interpreter = conf.interpreter;
 			this.impacts = conf.impactIndex;
+			this.nearZeroThreshold = conf.nearZeroThreshold;
 		}
 
 		public Config withUncertainties(boolean b) {
@@ -355,6 +361,11 @@ public final class ImpactBuilder {
 
 		public Config withImpacts(ImpactMethodDescriptor method) {
 			this.impacts = ImpactIndex.of(db, method);
+			return this;
+		}
+
+		public Config withNearZeroThreshold(Double threshold) {
+			this.nearZeroThreshold = threshold;
 			return this;
 		}
 

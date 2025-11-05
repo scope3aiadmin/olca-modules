@@ -110,8 +110,37 @@ public class MatrixBuilder {
 	}
 
 	public Matrix finish() {
+		if (dense != null) {
+			mapDense();
+			log.trace("Finish matrix builder with "
+					+ "dense {}*{} matrix", denseRows, denseCols);
+			return dense;
+		}
+		// double casts to avoid integer overflows
+		double n = (double) sparse.rows * (double) sparse.cols;
+		double fr = sparseEntries / n;
+		log.trace("Fill rate = {}", fr);
+		if (fr > maxSparseFileRate) {
+			mapDense();
+			log.trace("Finish matrix builder with "
+					+ "dense {}*{} matrix", denseRows, denseCols);
+			return dense;
+		}
+		log.trace("Finish matrix builder with "
+				+ "sparse {}*{} matrix", sparse.rows, sparse.cols);
+		return sparse;
+	}
+
+	/**
+	 * Finish building the matrix and apply thresholding for near-zero values.
+	 * Values with absolute value below the given threshold will be set to zero.
+	 *
+	 * @param threshold The threshold value below which entries are set to zero
+	 * @return The finished matrix
+	 */
+	public Matrix finish(double threshold) {
 		// Apply thresholding before finalizing
-		thresholdNearZeroValues(1e-9);
+		thresholdNearZeroValues(threshold);
 		if (dense != null) {
 			mapDense();
 			log.trace("Finish matrix builder with "
