@@ -141,6 +141,51 @@ public class MatrixBuilder {
 	public Matrix finish(double threshold) {
 		// Apply thresholding before finalizing
 		thresholdNearZeroValues(threshold);
+		
+		// After thresholding, re-evaluate if we should stay dense or convert back to sparse
+		if (dense != null) {
+			// Count non-zero entries in dense matrix
+			int nonZeroCount = 0;
+			for (int col = 0; col < dense.columns(); col++) {
+				for (int row = 0; row < dense.rows(); row++) {
+					if (Math.abs(dense.get(row, col)) > 1e-10) { // Use small epsilon
+						nonZeroCount++;
+					}
+				}
+			}
+			
+			// Recalculate fill rate after thresholding
+			double n = (double) dense.rows * (double) dense.columns();
+			double fr = nonZeroCount / n;
+			
+			if (fr <= maxSparseFileRate) {
+				// Fill rate is low enough, convert back to sparse
+				log.info("Fill rate after thresholding: {} (<= {}), converting to sparse", 
+						fr, maxSparseFileRate);
+				sparse.clear();
+				sparse.rows = dense.rows;
+				sparse.cols = dense.columns;
+				for (int col = 0; col < dense.columns(); col++) {
+					for (int row = 0; row < dense.rows(); row++) {
+						double val = dense.get(row, col);
+						if (Math.abs(val) > 1e-10) {
+							sparse.set(row, col, val);
+						}
+					}
+				}
+				dense = null;
+				denseRows = 0;
+				denseCols = 0;
+				sparseEntries = nonZeroCount;
+			} else {
+				mapDense();
+				log.trace("Finish matrix builder with "
+						+ "dense {}*{} matrix", denseRows, denseCols);
+				return dense;
+			}
+		}
+		
+		// Now use normal finish logic
 		if (dense != null) {
 			mapDense();
 			log.trace("Finish matrix builder with "
